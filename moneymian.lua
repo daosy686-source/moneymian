@@ -8,11 +8,11 @@ local RunService = game:GetService("RunService")
 local VirtualUser = game:GetService("VirtualUser")
 local Workspace = game:GetService("Workspace")
 
--- Biến toàn cục
 local Character = Player.Character or Player.CharacterAdded:Wait()
 local HRP = Character:WaitForChild("HumanoidRootPart")
 local Humanoid = Character:WaitForChild("Humanoid")
 
+-- Cài đặt
 _G.Settings = {
     AutoFarm = false,
     FarmZone = "Bandit",
@@ -27,10 +27,10 @@ _G.Settings = {
     AutoChest = false,
     AutoSeaBeast = false,
     AutoNextSea = false,
-    AutoV4 = false          -- Mới thêm
+    AutoV4 = false,
+    FastAttack = true   -- Mặc định bật tấn công nhanh
 }
 
--- Danh sách vùng farm
 local FarmZones = {
     ["Bandit"] = {CFrame = CFrame.new(1050, 16, 1550), EnemyFolder = "Enemies"},
     ["Monkey"] = {CFrame = CFrame.new(-1240, 12, 560), EnemyFolder = "Enemies"},
@@ -43,7 +43,6 @@ local FarmZones = {
     ["Fishman Warrior"] = {CFrame = CFrame.new(5500, 20, -800), EnemyFolder = "Enemies"},
 }
 
--- Danh sách đảo teleport
 local Islands = {
     ["Start"] = CFrame.new(1070, 16, 1450),
     ["Jungle"] = CFrame.new(-1240, 12, 560),
@@ -61,7 +60,6 @@ local Islands = {
     ["Mob Island"] = CFrame.new(-12000, 30, -7000)
 }
 
--- Danh sách boss
 local Bosses = {
     ["Bobby"] = CFrame.new(1050, 16, 1550),
     ["Saw Boss"] = CFrame.new(-1240, 12, 560),
@@ -100,7 +98,7 @@ local Tabs = {}
 
 local function CreateTab(name)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 55, 0, 30)  -- thu nhỏ để vừa nhiều tab
+    btn.Size = UDim2.new(0, 55, 0, 30)
     btn.Position = UDim2.new(0, #Tabs * 55, 0, 0)
     btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     btn.Text = name
@@ -125,14 +123,10 @@ local function CreateTab(name)
         page.Visible = true
     end)
 
-    if #Tabs == 1 then
-        page.Visible = true
-    end
-
+    if #Tabs == 1 then page.Visible = true end
     return page
 end
 
--- Hàm tiện ích
 local function CreateToggle(parent, text, position, default, callback)
     local state = default
     local btn = Instance.new("TextButton")
@@ -195,12 +189,13 @@ local function CreateButton(parent, text, position, callback)
     return btn
 end
 
--- ==================== TẠO CÁC TAB ====================
+-- ==================== CÁC TAB ====================
 local FarmTab = CreateTab("Farm")
 CreateToggle(FarmTab, "Auto Farm", UDim2.new(0, 10, 0, 10), false, function(v) _G.Settings.AutoFarm = v end)
 CreateDropdown(FarmTab, "Vùng", UDim2.new(0, 170, 0, 10), {"Bandit","Monkey","Pirate","Marine","Sky Bandit","Prisoner","Gladiator","Magma Ninja","Fishman Warrior"}, "Bandit", function(v) _G.Settings.FarmZone = v end)
 CreateToggle(FarmTab, "Auto Stats", UDim2.new(0, 10, 0, 60), false, function(v) _G.Settings.AutoStats = v end)
 CreateDropdown(FarmTab, "Chỉ số ưu tiên", UDim2.new(0, 170, 0, 60), {"Melee","Defense","Sword","Gun","Demon Fruit"}, "Melee", function(v) _G.Settings.StatPriority = v end)
+CreateToggle(FarmTab, "Tấn công nhanh", UDim2.new(0, 10, 0, 110), true, function(v) _G.Settings.FastAttack = v end)
 
 local TeleTab = CreateTab("Tele")
 CreateDropdown(TeleTab, "Đảo", UDim2.new(0, 10, 0, 10), {"Start","Jungle","Pirate Village","Desert","Snow","Marine Fortress","Skylands","Prison","Colosseum","Magma Village","Underwater City","Fountain City","Shank's Room","Mob Island"}, "Start", function(v)
@@ -236,28 +231,51 @@ CreateButton(MiscTab, "Reset Character", UDim2.new(0, 10, 0, 140), function()
     if Character then Character:BreakJoints() end
 end)
 
--- TAB MỚI: V4
 local V4Tab = CreateTab("V4")
 CreateToggle(V4Tab, "Auto Up V4", UDim2.new(0, 10, 0, 10), false, function(v) _G.Settings.AutoV4 = v end)
 local v4Info = Instance.new("TextLabel")
 v4Info.Size = UDim2.new(1, -20, 0, 80)
 v4Info.Position = UDim2.new(0, 10, 0, 50)
 v4Info.BackgroundTransparency = 1
-v4Info.Text = "Tự động đến Đền Thời Gian,\nbắt đầu thử thách và farm kẻ địch.\nCần: Level 1500+, V3, Mastery 400+.\n(Remote có thể cần chỉnh sửa)"
+v4Info.Text = "Cần: Level 1500+, V3, Mastery 400+.\nTự động đến Đền Thời Gian và farm."
 v4Info.TextColor3 = Color3.new(1, 1, 0.5)
 v4Info.Font = Enum.Font.SourceSans
 v4Info.TextSize = 13
 v4Info.TextWrapped = true
 v4Info.Parent = V4Tab
 
--- ==================== CHỨC NĂNG CHÍNH ====================
+-- ==================== CHỨC NĂNG PHỤ TRỢ ====================
 Player.CharacterAdded:Connect(function(char)
     Character = char
     HRP = char:WaitForChild("HumanoidRootPart")
     Humanoid = char:WaitForChild("Humanoid")
 end)
 
--- Auto Farm
+-- Hàm tìm vũ khí mạnh nhất (dựa vào BaseDamage hoặc tier)
+local function getBestWeapon()
+    local best = nil
+    local maxDmg = 0
+    for _, tool in pairs(Character:GetChildren()) do
+        if tool:IsA("Tool") and tool:FindFirstChild("BaseDamage") then
+            local dmg = tool.BaseDamage.Value
+            if dmg > maxDmg then
+                maxDmg = dmg
+                best = tool
+            end
+        end
+    end
+    return best
+end
+
+-- Tự động trang bị vũ khí nếu có
+local function equipBestWeapon()
+    local weapon = getBestWeapon()
+    if weapon and Character:FindFirstChildOfClass("Humanoid") then
+        Humanoid:EquipTool(weapon)
+    end
+end
+
+-- ==================== AUTO FARM TỐC ĐỘ CAO ====================
 RunService.Heartbeat:Connect(function()
     if _G.Settings.AutoFarm and Character and HRP then
         pcall(function()
@@ -265,19 +283,43 @@ RunService.Heartbeat:Connect(function()
             if not zone then return end
             local enemies = Workspace:FindFirstChild(zone.EnemyFolder)
             if not enemies then HRP.CFrame = zone.CFrame return end
+
             local target = nil
             local minDist = math.huge
             for _, enemy in pairs(enemies:GetChildren()) do
                 if enemy:IsA("Model") and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
                     local dist = (enemy.HumanoidRootPart.Position - HRP.Position).Magnitude
-                    if dist < minDist then minDist = dist target = enemy end
+                    if dist < minDist then
+                        minDist = dist
+                        target = enemy
+                    end
                 end
             end
+
             if target then
-                HRP.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-                VIM:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                task.wait(0.1)
-                VIM:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                -- Tắt AutoRotate để di chuyển nhanh hơn
+                Humanoid.AutoRotate = false
+                -- Teleport sát quái (cách 2.5 studs)
+                HRP.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 0, 2.5)
+                -- Quay mặt về quái
+                HRP.CFrame = CFrame.lookAt(HRP.Position, target.HumanoidRootPart.Position)
+
+                -- Trang bị vũ khí tốt nhất (nếu tùy chọn bật)
+                equipBestWeapon()
+
+                -- Tấn công nhanh
+                if _G.Settings.FastAttack then
+                    -- Gửi nhiều click liên tục với delay siêu thấp
+                    for i = 1, 3 do
+                        VIM:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                        VIM:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                        task.wait(0.03)  -- 30ms giữa các lần click
+                    end
+                else
+                    VIM:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                    task.wait(0.1)
+                    VIM:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                end
             else
                 HRP.CFrame = zone.CFrame
             end
@@ -409,19 +451,15 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- ==================== AUTO V4 ====================
+-- Auto V4
 RunService.Heartbeat:Connect(function()
     if _G.Settings.AutoV4 then
         pcall(function()
-            -- Tọa độ Temple of Time (có thể chỉnh sửa)
             local templeCFrame = CFrame.new(5200, 30, -7800)
             HRP.CFrame = templeCFrame
             wait(1)
-            -- Thử bắt đầu thử thách (remote thường dùng: "StartTrial", "BeginV4Trial", ...)
-            -- Kiểm tra và thay đổi remote nếu cần
-            CommF:InvokeServer("StartTrial", "V4")  -- Remote ví dụ
+            CommF:InvokeServer("StartTrial", "V4")
             wait(2)
-            -- Tự động đánh quái trong khu vực (tương tự farm)
             local enemies = Workspace:FindFirstChild("TempleEnemies") or Workspace:FindFirstChild("Enemies")
             if enemies then
                 for _, enemy in pairs(enemies:GetChildren()) do
@@ -429,14 +467,13 @@ RunService.Heartbeat:Connect(function()
                         repeat
                             HRP.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
                             VIM:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                            task.wait(0.1)
+                            task.wait(0.05)
                             VIM:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                            task.wait(0.5)
+                            task.wait(0.1)
                         until not enemy:FindFirstChild("Humanoid") or enemy.Humanoid.Health <= 0
                     end
                 end
             end
-            -- Sau khi dọn xong, có thể tự nhận phần thưởng (nếu có remote)
             CommF:InvokeServer("CompleteTrial", "V4")
         end)
     end
@@ -453,7 +490,6 @@ end)
 if game.StarterGui then
     game.StarterGui:SetCore("SendNotification", {
         Title = "Blox Fruits Hub",
-        Text = "Giao diện đã tải! Chọn tab để sử dụng."
+        Text = "Giao diện đã tải! Tab Farm đã có chế độ siêu nhanh."
     })
-end
 end
