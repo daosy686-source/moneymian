@@ -2,7 +2,7 @@
 -- ==================== KEY CONFIG ====================
 local GIST_KEY_URL = "https://gist.githubusercontent.com/daosy686-source/866258df…0/raw/fc9cb1f08cdaf617a435796293e6612db57e26e4/gistfile1.txt
 "  -- 👈 Thay link raw Gist
-local FALLBACK_KEY = "FREEMIUM"
+local FALLBACK_KEY = "PREMIUM"
 
 -- ==================== KEY SYSTEM ====================
 local function fetchKeyFromGist()
