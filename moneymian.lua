@@ -1,4 +1,4 @@
- Dịch vụ cần thiết
+
 local Player = game.Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -6,49 +6,44 @@ local CommF = Remotes:WaitForChild("CommF_")
 local VIM = game:GetService("VirtualInputManager")
 local RunService = game:GetService("RunService")
 local VirtualUser = game:GetService("VirtualUser")
-local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
-local Players = game:GetService("Players")
-local TeleportService = game:GetService("TeleportService")
 
--- Biến môi trường
-local LocalPlayer = Player
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+-- Biến toàn cục
+local Character = Player.Character or Player.CharacterAdded:Wait()
 local HRP = Character:WaitForChild("HumanoidRootPart")
 local Humanoid = Character:WaitForChild("Humanoid")
-local Camera = Workspace.CurrentCamera
 
--- Cấu hình global
 _G.Settings = {
     AutoFarm = false,
-    FarmZone = "Bandit",    -- Bandit, Monkey, Pirate, ...
+    FarmZone = "Bandit",
     AutoStats = false,
-    StatPriority = "Melee", -- Melee, Defense, Sword, Gun, Demon Fruit
+    StatPriority = "Melee",
     ESP = false,
     AutoRaid = false,
     AutoMastery = false,
     AutoAwaken = false,
     AutoBuy = false,
-    BuyItem = "Sword",      -- Sword, Gun, Blox Fruit
+    BuyItem = "Sword",
     AutoChest = false,
     AutoSeaBeast = false,
-    AutoNextSea = false     -- Tự động lên biển tiếp theo
+    AutoNextSea = false,
+    AutoV4 = false          -- Mới thêm
 }
 
--- Danh sách vùng farm (tuỳ chỉnh thêm)
+-- Danh sách vùng farm
 local FarmZones = {
-    ["Bandit"] = {CFrame = CFrame.new(1050, 16, 1550), Enemies = "Enemies"},
-    ["Monkey"] = {CFrame = CFrame.new(-1240, 12, 560), Enemies = "Enemies"},
-    ["Pirate"] = {CFrame = CFrame.new(-1120, 15, 4350), Enemies = "Enemies"},
-    ["Marine"] = {CFrame = CFrame.new(-5500, 100, -3000), Enemies = "Marines"},
-    ["Sky Bandit"] = {CFrame = CFrame.new(-4950, 720, -2650), Enemies = "Enemies"},
-    ["Prisoner"] = {CFrame = CFrame.new(4800, 30, 2200), Enemies = "Enemies"},
-    ["Gladiator"] = {CFrame = CFrame.new(-1600, 30, -3000), Enemies = "Enemies"},
-    ["Magma Ninja"] = {CFrame = CFrame.new(-5300, 40, 8400), Enemies = "Enemies"},
-    ["Fishman Warrior"] = {CFrame = CFrame.new(5500, 20, -800), Enemies = "Enemies"},
+    ["Bandit"] = {CFrame = CFrame.new(1050, 16, 1550), EnemyFolder = "Enemies"},
+    ["Monkey"] = {CFrame = CFrame.new(-1240, 12, 560), EnemyFolder = "Enemies"},
+    ["Pirate"] = {CFrame = CFrame.new(-1120, 15, 4350), EnemyFolder = "Enemies"},
+    ["Marine"] = {CFrame = CFrame.new(-5500, 100, -3000), EnemyFolder = "Marines"},
+    ["Sky Bandit"] = {CFrame = CFrame.new(-4950, 720, -2650), EnemyFolder = "Enemies"},
+    ["Prisoner"] = {CFrame = CFrame.new(4800, 30, 2200), EnemyFolder = "Enemies"},
+    ["Gladiator"] = {CFrame = CFrame.new(-1600, 30, -3000), EnemyFolder = "Enemies"},
+    ["Magma Ninja"] = {CFrame = CFrame.new(-5300, 40, 8400), EnemyFolder = "Enemies"},
+    ["Fishman Warrior"] = {CFrame = CFrame.new(5500, 20, -800), EnemyFolder = "Enemies"},
 }
 
--- Danh sách đảo
+-- Danh sách đảo teleport
 local Islands = {
     ["Start"] = CFrame.new(1070, 16, 1450),
     ["Jungle"] = CFrame.new(-1240, 12, 560),
@@ -71,180 +66,192 @@ local Bosses = {
     ["Bobby"] = CFrame.new(1050, 16, 1550),
     ["Saw Boss"] = CFrame.new(-1240, 12, 560),
     ["Vice Admiral"] = CFrame.new(-1120, 15, 4350),
-    -- Thêm các boss khác
 }
 
--- Tạo GUI
+-- ==================== GIAO DIỆN ====================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "BF_FullHub"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- Hàm tiện ích tạo phần tử
-local function CreateFrame(size, position, parent, bg)
-    local f = Instance.new("Frame")
-    f.Size = size
-    f.Position = position
-    f.BackgroundColor3 = bg or Color3.fromRGB(30,30,30)
-    f.BorderSizePixel = 0
-    f.Parent = parent
-    return f
-end
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 360, 0, 340)
+MainFrame.Position = UDim2.new(0.4, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
 
-local function CreateButton(parent, text, position, callback)
+local TabBar = Instance.new("Frame")
+TabBar.Size = UDim2.new(1, 0, 0, 30)
+TabBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TabBar.BorderSizePixel = 0
+TabBar.Parent = MainFrame
+
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Size = UDim2.new(1, 0, 1, -30)
+ContentFrame.Position = UDim2.new(0, 0, 0, 30)
+ContentFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ContentFrame.BorderSizePixel = 0
+ContentFrame.Parent = MainFrame
+
+local Tabs = {}
+
+local function CreateTab(name)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 100, 0, 25)
-    btn.Position = position
-    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    btn.Text = text
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.Font = Enum.Font.SourceSans
-    btn.TextSize = 13
-    btn.Parent = parent
-    btn.MouseButton1Click:Connect(callback)
-    return btn
+    btn.Size = UDim2.new(0, 55, 0, 30)  -- thu nhỏ để vừa nhiều tab
+    btn.Position = UDim2.new(0, #Tabs * 55, 0, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.Text = name
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 12
+    btn.Parent = TabBar
+
+    local page = Instance.new("Frame")
+    page.Size = UDim2.new(1, 0, 1, 0)
+    page.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    page.BorderSizePixel = 0
+    page.Visible = false
+    page.Parent = ContentFrame
+
+    table.insert(Tabs, {Button = btn, Page = page})
+
+    btn.MouseButton1Click:Connect(function()
+        for _, t in ipairs(Tabs) do
+            t.Page.Visible = false
+        end
+        page.Visible = true
+    end)
+
+    if #Tabs == 1 then
+        page.Visible = true
+    end
+
+    return page
 end
 
+-- Hàm tiện ích
 local function CreateToggle(parent, text, position, default, callback)
     local state = default
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 100, 0, 25)
+    btn.Size = UDim2.new(0, 150, 0, 30)
     btn.Position = position
-    btn.BackgroundColor3 = default and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+    btn.BackgroundColor3 = default and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
     btn.Text = text .. ": " .. (default and "ON" or "OFF")
-    btn.TextColor3 = Color3.new(1,1,1)
+    btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.SourceSans
-    btn.TextSize = 13
+    btn.TextSize = 14
     btn.Parent = parent
     btn.MouseButton1Click:Connect(function()
         state = not state
-        btn.BackgroundColor3 = state and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+        btn.BackgroundColor3 = state and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
         btn.Text = text .. ": " .. (state and "ON" or "OFF")
         callback(state)
     end)
     return btn
 end
 
-local function CreateDropdown(parent, text, position, options, default, callback)
+local function CreateDropdown(parent, label, position, options, default, callback)
     local idx = table.find(options, default) or 1
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(0, 100, 0, 20)
-    lbl.Position = position + UDim2.new(0, 0, 0, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = text .. ": " .. options[idx]
-    lbl.TextColor3 = Color3.new(1,1,1)
-    lbl.Font = Enum.Font.SourceSans
-    lbl.TextSize = 13
-    lbl.Parent = parent
+    local display = Instance.new("TextLabel")
+    display.Size = UDim2.new(0, 150, 0, 20)
+    display.Position = position
+    display.BackgroundTransparency = 1
+    display.Text = label .. ": " .. options[idx]
+    display.TextColor3 = Color3.new(1, 1, 1)
+    display.Font = Enum.Font.SourceSans
+    display.TextSize = 14
+    display.Parent = parent
 
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 100, 0, 20)
-    btn.Position = position + UDim2.new(0, 0, 0, 20)
-    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    btn.Size = UDim2.new(0, 150, 0, 20)
+    btn.Position = position + UDim2.new(0, 0, 0, 22)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     btn.Text = ">"
-    btn.TextColor3 = Color3.new(1,1,1)
+    btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.SourceSans
     btn.TextSize = 14
     btn.Parent = parent
-
     btn.MouseButton1Click:Connect(function()
         idx = idx % #options + 1
-        lbl.Text = text .. ": " .. options[idx]
+        display.Text = label .. ": " .. options[idx]
         callback(options[idx])
     end)
 end
 
--- Tabs
-local MainFrame = CreateFrame(UDim2.new(0, 350, 0, 300), UDim2.new(0.4, 0, 0.3, 0), ScreenGui)
-MainFrame.Active = true
-MainFrame.Draggable = true
-
-local TabButtons = CreateFrame(UDim2.new(1, 0, 0, 25), UDim2.new(0,0,0,0), MainFrame, Color3.fromRGB(40,40,40))
-local Tabs = {}
-
-local function CreateTab(name)
+local function CreateButton(parent, text, position, callback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 70, 0, 25)
-    btn.Position = UDim2.new(0, (#Tabs * 70), 0, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
-    btn.Text = name
-    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Size = UDim2.new(0, 150, 0, 30)
+    btn.Position = position
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.Text = text
+    btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.SourceSans
-    btn.TextSize = 12
-    btn.Parent = TabButtons
-    local tabContent = CreateFrame(UDim2.new(1, 0, 1, -25), UDim2.new(0,0,0,25), MainFrame, Color3.fromRGB(30,30,30))
-    tabContent.Visible = false
-    table.insert(Tabs, {Button = btn, Content = tabContent})
-    btn.MouseButton1Click:Connect(function()
-        for _, t in ipairs(Tabs) do
-            t.Content.Visible = false
-        end
-        tabContent.Visible = true
-    end)
-    if #Tabs == 1 then
-        tabContent.Visible = true
-    end
-    return tabContent
+    btn.TextSize = 14
+    btn.Parent = parent
+    btn.MouseButton1Click:Connect(callback)
+    return btn
 end
 
--- Tab: Farm
+-- ==================== TẠO CÁC TAB ====================
 local FarmTab = CreateTab("Farm")
-CreateToggle(FarmTab, "Auto Farm", UDim2.new(0,5,0,5), false, function(v) _G.Settings.AutoFarm = v end)
-CreateDropdown(FarmTab, "Zone", UDim2.new(0,120,0,5), {"Bandit","Monkey","Pirate","Marine","Sky Bandit","Prisoner","Gladiator","Magma Ninja","Fishman Warrior"}, "Bandit", function(v) _G.Settings.FarmZone = v end)
-CreateToggle(FarmTab, "Auto Stats", UDim2.new(0,5,0,60), false, function(v) _G.Settings.AutoStats = v end)
-CreateDropdown(FarmTab, "Stat", UDim2.new(0,120,0,60), {"Melee","Defense","Sword","Gun","Demon Fruit"}, "Melee", function(v) _G.Settings.StatPriority = v end)
+CreateToggle(FarmTab, "Auto Farm", UDim2.new(0, 10, 0, 10), false, function(v) _G.Settings.AutoFarm = v end)
+CreateDropdown(FarmTab, "Vùng", UDim2.new(0, 170, 0, 10), {"Bandit","Monkey","Pirate","Marine","Sky Bandit","Prisoner","Gladiator","Magma Ninja","Fishman Warrior"}, "Bandit", function(v) _G.Settings.FarmZone = v end)
+CreateToggle(FarmTab, "Auto Stats", UDim2.new(0, 10, 0, 60), false, function(v) _G.Settings.AutoStats = v end)
+CreateDropdown(FarmTab, "Chỉ số ưu tiên", UDim2.new(0, 170, 0, 60), {"Melee","Defense","Sword","Gun","Demon Fruit"}, "Melee", function(v) _G.Settings.StatPriority = v end)
 
--- Tab: Teleport
-local TeleTab = CreateTab("Teleport")
-CreateDropdown(TeleTab, "Island", UDim2.new(0,5,0,5), {"Start","Jungle","Pirate Village","Desert","Snow","Marine Fortress","Skylands","Prison","Colosseum","Magma Village","Underwater City","Fountain City","Shank's Room","Mob Island"}, "Start", function(v)
-    if Islands[v] and HRP then
-        HRP.CFrame = Islands[v]
-    end
+local TeleTab = CreateTab("Tele")
+CreateDropdown(TeleTab, "Đảo", UDim2.new(0, 10, 0, 10), {"Start","Jungle","Pirate Village","Desert","Snow","Marine Fortress","Skylands","Prison","Colosseum","Magma Village","Underwater City","Fountain City","Shank's Room","Mob Island"}, "Start", function(v)
+    if Islands[v] and HRP then HRP.CFrame = Islands[v] end
 end)
-CreateDropdown(TeleTab, "Boss", UDim2.new(0,5,0,60), {"Bobby","Saw Boss","Vice Admiral"}, "Bobby", function(v)
-    if Bosses[v] and HRP then
-        HRP.CFrame = Bosses[v]
-    end
+CreateDropdown(TeleTab, "Boss", UDim2.new(0, 10, 0, 60), {"Bobby","Saw Boss","Vice Admiral"}, "Bobby", function(v)
+    if Bosses[v] and HRP then HRP.CFrame = Bosses[v] end
 end)
-CreateButton(TeleTab, "Sea 2 (Marine)", UDim2.new(0,5,0,105), function()
-    -- Tự động đến NPC để bắt đầu quest Sea 2
-    HRP.CFrame = CFrame.new(-5500, 100, -3000) -- Marine Fortress
-    wait(1)
-    CommF:InvokeServer("SetSpawnPoint", "2") -- Remote thường dùng để đổi spawn point
+CreateButton(TeleTab, "Đến NPC Sea 2", UDim2.new(0, 10, 0, 120), function()
+    HRP.CFrame = CFrame.new(-5500, 100, -3000)
 end)
-CreateButton(TeleTab, "Sea 3 (Prison)", UDim2.new(0,120,0,105), function()
+CreateButton(TeleTab, "Đến NPC Sea 3", UDim2.new(0, 10, 0, 160), function()
     HRP.CFrame = CFrame.new(4800, 30, 2200)
-    wait(1)
-    CommF:InvokeServer("SetSpawnPoint", "3")
 end)
 
--- Tab: ESP
 local ESPTab = CreateTab("ESP")
-CreateToggle(ESPTab, "ESP Quái/Player", UDim2.new(0,5,0,5), false, function(v) _G.Settings.ESP = v end)
+CreateToggle(ESPTab, "ESP (Quái/Player)", UDim2.new(0, 10, 0, 10), false, function(v) _G.Settings.ESP = v end)
 
--- Tab: Raid & Mastery
-local AdvTab = CreateTab("Raid/Thức Tỉnh")
-CreateToggle(AdvTab, "Auto Raid", UDim2.new(0,5,0,5), false, function(v) _G.Settings.AutoRaid = v end)
-CreateToggle(AdvTab, "Auto Mastery", UDim2.new(0,5,0,40), false, function(v) _G.Settings.AutoMastery = v end)
-CreateToggle(AdvTab, "Auto Awaken", UDim2.new(0,5,0,75), false, function(v) _G.Settings.AutoAwaken = v end)
+local RaidTab = CreateTab("Raid")
+CreateToggle(RaidTab, "Auto Raid", UDim2.new(0, 10, 0, 10), false, function(v) _G.Settings.AutoRaid = v end)
+CreateToggle(RaidTab, "Auto Mastery", UDim2.new(0, 10, 0, 50), false, function(v) _G.Settings.AutoMastery = v end)
+CreateToggle(RaidTab, "Auto Awaken", UDim2.new(0, 10, 0, 90), false, function(v) _G.Settings.AutoAwaken = v end)
 
--- Tab: Mua vật phẩm
-local BuyTab = CreateTab("Mua Hàng")
-CreateToggle(BuyTab, "Auto Buy", UDim2.new(0,5,0,5), false, function(v) _G.Settings.AutoBuy = v end)
-CreateDropdown(BuyTab, "Item", UDim2.new(0,120,0,5), {"Sword","Gun","Blox Fruit"}, "Sword", function(v) _G.Settings.BuyItem = v end)
+local BuyTab = CreateTab("Mua")
+CreateToggle(BuyTab, "Auto Buy", UDim2.new(0, 10, 0, 10), false, function(v) _G.Settings.AutoBuy = v end)
+CreateDropdown(BuyTab, "Mặt hàng", UDim2.new(0, 170, 0, 10), {"Sword","Gun","Blox Fruit"}, "Sword", function(v) _G.Settings.BuyItem = v end)
 
--- Tab: Khác
 local MiscTab = CreateTab("Khác")
-CreateToggle(MiscTab, "Auto Chest Farm", UDim2.new(0,5,0,5), false, function(v) _G.Settings.AutoChest = v end)
-CreateToggle(MiscTab, "Auto Sea Beast", UDim2.new(0,5,0,40), false, function(v) _G.Settings.AutoSeaBeast = v end)
-CreateToggle(MiscTab, "Tự động lên Sea", UDim2.new(0,5,0,75), false, function(v) _G.Settings.AutoNextSea = v end)
-CreateButton(MiscTab, "Reset Character", UDim2.new(0,5,0,115), function()
+CreateToggle(MiscTab, "Auto Chest Farm", UDim2.new(0, 10, 0, 10), false, function(v) _G.Settings.AutoChest = v end)
+CreateToggle(MiscTab, "Auto Sea Beast", UDim2.new(0, 10, 0, 50), false, function(v) _G.Settings.AutoSeaBeast = v end)
+CreateToggle(MiscTab, "Tự động lên Sea", UDim2.new(0, 10, 0, 90), false, function(v) _G.Settings.AutoNextSea = v end)
+CreateButton(MiscTab, "Reset Character", UDim2.new(0, 10, 0, 140), function()
     if Character then Character:BreakJoints() end
 end)
 
--- ==================== LOGIC CHÍNH ====================
--- Cập nhật nhân vật
-LocalPlayer.CharacterAdded:Connect(function(char)
+-- TAB MỚI: V4
+local V4Tab = CreateTab("V4")
+CreateToggle(V4Tab, "Auto Up V4", UDim2.new(0, 10, 0, 10), false, function(v) _G.Settings.AutoV4 = v end)
+local v4Info = Instance.new("TextLabel")
+v4Info.Size = UDim2.new(1, -20, 0, 80)
+v4Info.Position = UDim2.new(0, 10, 0, 50)
+v4Info.BackgroundTransparency = 1
+v4Info.Text = "Tự động đến Đền Thời Gian,\nbắt đầu thử thách và farm kẻ địch.\nCần: Level 1500+, V3, Mastery 400+.\n(Remote có thể cần chỉnh sửa)"
+v4Info.TextColor3 = Color3.new(1, 1, 0.5)
+v4Info.Font = Enum.Font.SourceSans
+v4Info.TextSize = 13
+v4Info.TextWrapped = true
+v4Info.Parent = V4Tab
+
+-- ==================== CHỨC NĂNG CHÍNH ====================
+Player.CharacterAdded:Connect(function(char)
     Character = char
     HRP = char:WaitForChild("HumanoidRootPart")
     Humanoid = char:WaitForChild("Humanoid")
@@ -256,24 +263,18 @@ RunService.Heartbeat:Connect(function()
         pcall(function()
             local zone = FarmZones[_G.Settings.FarmZone]
             if not zone then return end
-            local enemies = Workspace:FindFirstChild(zone.Enemies)
-            if not enemies then
-                HRP.CFrame = zone.CFrame
-                return
-            end
+            local enemies = Workspace:FindFirstChild(zone.EnemyFolder)
+            if not enemies then HRP.CFrame = zone.CFrame return end
             local target = nil
             local minDist = math.huge
             for _, enemy in pairs(enemies:GetChildren()) do
                 if enemy:IsA("Model") and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
                     local dist = (enemy.HumanoidRootPart.Position - HRP.Position).Magnitude
-                    if dist < minDist then
-                        minDist = dist
-                        target = enemy
-                    end
+                    if dist < minDist then minDist = dist target = enemy end
                 end
             end
             if target then
-                HRP.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
+                HRP.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
                 VIM:SendMouseButtonEvent(0, 0, 0, true, game, 0)
                 task.wait(0.1)
                 VIM:SendMouseButtonEvent(0, 0, 0, false, game, 0)
@@ -304,7 +305,7 @@ RunService.Heartbeat:Connect(function()
                     hl.Name = "ESP_Highlight"
                     hl.Parent = obj
                     hl.FillTransparency = 0.5
-                    hl.OutlineColor = Color3.fromRGB(255,0,0)
+                    hl.OutlineColor = Color3.fromRGB(255, 0, 0)
                 end
             end
         end
@@ -315,25 +316,21 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Auto Raid (mua raid Flame và tự động vào)
+-- Auto Raid
 RunService.Heartbeat:Connect(function()
     if _G.Settings.AutoRaid then
         pcall(function()
-            CommF:InvokeServer("Raids", "Buy") -- Remote mua raid (có thể cần chỉnh sửa)
+            CommF:InvokeServer("Raids", "Buy")
             task.wait(30)
         end)
     end
 end)
 
--- Auto Mastery (đánh quái liên tục để tăng mastery)
--- Sử dụng chung vòng lặp farm, nhưng bổ sung thêm logic chọn vũ khí phù hợp
--- Ở đây chỉ đơn giản là giữ Auto Farm bật
-
--- Auto Awaken: Yêu cầu trong raid, sử dụng remote "AwakenFruit"
+-- Auto Awaken
 RunService.Heartbeat:Connect(function()
     if _G.Settings.AutoAwaken then
         pcall(function()
-            CommF:InvokeServer("AwakenFruit", "Flame") -- Ví dụ
+            CommF:InvokeServer("AwakenFruit", "Flame")
             task.wait(10)
         end)
     end
@@ -356,7 +353,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Auto Chest Farm (quét toàn bộ rương gần nhất và mở)
+-- Auto Chest Farm
 RunService.Heartbeat:Connect(function()
     if _G.Settings.AutoChest then
         pcall(function()
@@ -364,7 +361,7 @@ RunService.Heartbeat:Connect(function()
                 if v.Name == "Chest" and v:IsA("Model") and v:FindFirstChild("TouchInterest") then
                     HRP.CFrame = v:GetPivot()
                     task.wait(0.5)
-                    firetouchinterest(HRP, v, 0) -- touch để mở rương
+                    firetouchinterest(HRP, v, 0)
                     firetouchinterest(HRP, v, 1)
                     break
                 end
@@ -373,7 +370,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Auto Sea Beast (săn Sea Beast khi ở Sea)
+-- Auto Sea Beast
 RunService.Heartbeat:Connect(function()
     if _G.Settings.AutoSeaBeast then
         pcall(function()
@@ -381,7 +378,7 @@ RunService.Heartbeat:Connect(function()
             if seaBeasts then
                 for _, beast in pairs(seaBeasts:GetChildren()) do
                     if beast:IsA("Model") and beast:FindFirstChild("Humanoid") and beast.Humanoid.Health > 0 then
-                        HRP.CFrame = beast.HumanoidRootPart.CFrame * CFrame.new(0,10,0)
+                        HRP.CFrame = beast.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
                         VIM:SendMouseButtonEvent(0, 0, 0, true, game, 0)
                         task.wait(0.5)
                         VIM:SendMouseButtonEvent(0, 0, 0, false, game, 0)
@@ -393,21 +390,17 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Tự động lên Sea tiếp theo
+-- Tự động lên Sea 2/3
 RunService.Heartbeat:Connect(function()
     if _G.Settings.AutoNextSea then
         pcall(function()
-            local level = LocalPlayer.Data and LocalPlayer.Data.Level and LocalPlayer.Data.Level.Value
+            local level = Player.Data and Player.Data.Level and Player.Data.Level.Value
             if not level then return end
             if level >= 150 and level < 300 then
-                -- Lên Sea 2: Teleport đến Marine Fortress, hoàn thành quest
                 HRP.CFrame = CFrame.new(-5500, 100, -3000)
                 wait(2)
                 CommF:InvokeServer("SetSpawnPoint", "2")
-                wait(1)
-                CommF:InvokeServer("CompleteQuest", "MarineQuest") -- Remote giả định
             elseif level >= 300 then
-                -- Lên Sea 3: Teleport đến Prison
                 HRP.CFrame = CFrame.new(4800, 30, 2200)
                 wait(2)
                 CommF:InvokeServer("SetSpawnPoint", "3")
@@ -416,17 +409,51 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Chống AFK
-LocalPlayer.Idled:Connect(function()
-    VirtualUser:Button2Down(Vector2.new(0,0), Camera.CFrame)
-    task.wait(1)
-    VirtualUser:Button2Up(Vector2.new(0,0), Camera.CFrame)
+-- ==================== AUTO V4 ====================
+RunService.Heartbeat:Connect(function()
+    if _G.Settings.AutoV4 then
+        pcall(function()
+            -- Tọa độ Temple of Time (có thể chỉnh sửa)
+            local templeCFrame = CFrame.new(5200, 30, -7800)
+            HRP.CFrame = templeCFrame
+            wait(1)
+            -- Thử bắt đầu thử thách (remote thường dùng: "StartTrial", "BeginV4Trial", ...)
+            -- Kiểm tra và thay đổi remote nếu cần
+            CommF:InvokeServer("StartTrial", "V4")  -- Remote ví dụ
+            wait(2)
+            -- Tự động đánh quái trong khu vực (tương tự farm)
+            local enemies = Workspace:FindFirstChild("TempleEnemies") or Workspace:FindFirstChild("Enemies")
+            if enemies then
+                for _, enemy in pairs(enemies:GetChildren()) do
+                    if enemy:IsA("Model") and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
+                        repeat
+                            HRP.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                            VIM:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                            task.wait(0.1)
+                            VIM:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                            task.wait(0.5)
+                        until not enemy:FindFirstChild("Humanoid") or enemy.Humanoid.Health <= 0
+                    end
+                end
+            end
+            -- Sau khi dọn xong, có thể tự nhận phần thưởng (nếu có remote)
+            CommF:InvokeServer("CompleteTrial", "V4")
+        end)
+    end
 end)
 
--- Thông báo hoàn tất
+-- Chống AFK
+Player.Idled:Connect(function()
+    VirtualUser:Button2Down(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
+    task.wait(1)
+    VirtualUser:Button2Up(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
+end)
+
+-- Thông báo
 if game.StarterGui then
     game.StarterGui:SetCore("SendNotification", {
         Title = "Blox Fruits Hub",
-        Text = "Script đã tải! Sử dụng tab để bật chức năng."
+        Text = "Giao diện đã tải! Chọn tab để sử dụng."
     })
+end
 end
