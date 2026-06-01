@@ -1,11 +1,13 @@
 
--- ==================== CẤU HÌNH KEY ====================
-local GIST_KEY_URL = "https://gist.githubusercontent.com/daosy686-source/866258dfa5e50cbd8c6c1e58eb306b80/raw/fc9cb1f08cdaf617a435796293e6612db57e26e4/gistfile1.txt"  -- 👈 Thay bằng link raw Gist chứa key của bạn
-local FALLBACK_KEY = "premium"  -- Key dự phòng nếu không lấy được Gist
+-- ==================== KEY CONFIG ====================
+local GIST_KEY_URL = "https://gist.githubusercontent.com/daosy686-source/866258df…0/raw/fc9cb1f08cdaf617a435796293e6612db57e26e4/gistfile1.txt
+"  -- 👈 Thay link raw Gist
+local FALLBACK_KEY = "FREEMIUM"
 
--- ==================== HỆ THỐNG KEY ====================
+-- ==================== KEY SYSTEM ====================
 local function fetchKeyFromGist()
-    local success, result = pcall(function() return game:HttpGet(https://gist.githubusercontent.com/daosy686-source/866258dfa5e50cbd8c6c1e58eb306b80/raw/fc9cb1f08cdaf617a435796293e6612db57e26e4/gistfile1.txt) end)
+    local success, result = pcall(function() return game:HttpGet(https://gist.githubusercontent.com/daosy686-source/866258df…0/raw/fc9cb1f08cdaf617a435796293e6612db57e26e4/gistfile1.txt
+) end)
     if success and result then
         local firstLine = result:match("^[^\r\n]+")
         if firstLine then return firstLine:match("^%s*(.-)%s*$") end
@@ -127,7 +129,11 @@ function loadMainGUI()
         AutoSeaBeast = false,
         AutoNextSea = false,
         AutoV4 = false,
-        FastAttack = true
+        FastAttack = true,
+        AutoElite = false,
+        AutoSaber = false,
+        AutoKenV2 = false,
+        AutoServerHop = false
     }
 
     local FarmZones = {
@@ -165,14 +171,14 @@ function loadMainGUI()
         ["Vice Admiral"] = CFrame.new(-1120, 15, 4350),
     }
 
-    -- GUI
+    -- ==================== GIAO DIỆN ====================
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "BF_FullHub"
     ScreenGui.Parent = game.CoreGui
     ScreenGui.ResetOnSpawn = false
 
     local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0, 360, 0, 340)
+    MainFrame.Size = UDim2.new(0, 360, 0, 360)
     MainFrame.Position = UDim2.new(0.4, 0, 0.3, 0)
     MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     MainFrame.BorderSizePixel = 0
@@ -196,13 +202,13 @@ function loadMainGUI()
     local Tabs = {}
     local function CreateTab(name)
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0, 55, 0, 30)
-        btn.Position = UDim2.new(0, #Tabs * 55, 0, 0)
+        btn.Size = UDim2.new(0, 50, 0, 30)
+        btn.Position = UDim2.new(0, #Tabs * 50, 0, 0)
         btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
         btn.Text = name
         btn.TextColor3 = Color3.new(1, 1, 1)
         btn.Font = Enum.Font.SourceSansBold
-        btn.TextSize = 12
+        btn.TextSize = 11
         btn.Parent = TabBar
 
         local page = Instance.new("Frame")
@@ -230,7 +236,7 @@ function loadMainGUI()
         btn.Text = text .. ": " .. (default and "ON" or "OFF")
         btn.TextColor3 = Color3.new(1, 1, 1)
         btn.Font = Enum.Font.SourceSans
-        btn.TextSize = 14
+        btn.TextSize = 13
         btn.Parent = parent
         btn.MouseButton1Click:Connect(function()
             state = not state
@@ -250,7 +256,7 @@ function loadMainGUI()
         display.Text = label .. ": " .. options[idx]
         display.TextColor3 = Color3.new(1, 1, 1)
         display.Font = Enum.Font.SourceSans
-        display.TextSize = 14
+        display.TextSize = 13
         display.Parent = parent
 
         local btn = Instance.new("TextButton")
@@ -277,18 +283,18 @@ function loadMainGUI()
         btn.Text = text
         btn.TextColor3 = Color3.new(1, 1, 1)
         btn.Font = Enum.Font.SourceSans
-        btn.TextSize = 14
+        btn.TextSize = 13
         btn.Parent = parent
         btn.MouseButton1Click:Connect(callback)
         return btn
     end
 
-    -- Tabs
+    -- ==================== TẤT CẢ TAB ====================
     local FarmTab = CreateTab("Farm")
     CreateToggle(FarmTab, "Auto Farm", UDim2.new(0, 10, 0, 10), false, function(v) _G.Settings.AutoFarm = v end)
     CreateDropdown(FarmTab, "Vùng", UDim2.new(0, 170, 0, 10), {"Bandit","Monkey","Pirate","Marine","Sky Bandit","Prisoner","Gladiator","Magma Ninja","Fishman Warrior"}, "Bandit", function(v) _G.Settings.FarmZone = v end)
     CreateToggle(FarmTab, "Auto Stats", UDim2.new(0, 10, 0, 60), false, function(v) _G.Settings.AutoStats = v end)
-    CreateDropdown(FarmTab, "Chỉ số ưu tiên", UDim2.new(0, 170, 0, 60), {"Melee","Defense","Sword","Gun","Demon Fruit"}, "Melee", function(v) _G.Settings.StatPriority = v end)
+    CreateDropdown(FarmTab, "Chỉ số", UDim2.new(0, 170, 0, 60), {"Melee","Defense","Sword","Gun","Demon Fruit"}, "Melee", function(v) _G.Settings.StatPriority = v end)
     CreateToggle(FarmTab, "Tấn công nhanh", UDim2.new(0, 10, 0, 110), true, function(v) _G.Settings.FastAttack = v end)
 
     local TeleTab = CreateTab("Tele")
@@ -311,6 +317,13 @@ function loadMainGUI()
     local BuyTab = CreateTab("Mua")
     CreateToggle(BuyTab, "Auto Buy", UDim2.new(0, 10, 0, 10), false, function(v) _G.Settings.AutoBuy = v end)
     CreateDropdown(BuyTab, "Mặt hàng", UDim2.new(0, 170, 0, 10), {"Sword","Gun","Blox Fruit"}, "Sword", function(v) _G.Settings.BuyItem = v end)
+
+    local QuestTab = CreateTab("N.Vụ")
+    CreateToggle(QuestTab, "Auto Elite Hunter", UDim2.new(0, 10, 0, 10), false, function(v) _G.Settings.AutoElite = v end)
+    CreateToggle(QuestTab, "Auto Saber Quest", UDim2.new(0, 10, 0, 50), false, function(v) _G.Settings.AutoSaber = v end)
+    CreateToggle(QuestTab, "Auto Ken V2", UDim2.new(0, 10, 0, 90), false, function(v) _G.Settings.AutoKenV2 = v end)
+    CreateToggle(QuestTab, "Auto Server Hop", UDim2.new(0, 10, 0, 130), false, function(v) _G.Settings.AutoServerHop = v end)
+    CreateButton(QuestTab, "Hop Server", UDim2.new(0, 10, 0, 170), function() hopServer() end)
 
     local MiscTab = CreateTab("Khác")
     CreateToggle(MiscTab, "Auto Chest", UDim2.new(0, 10, 0, 10), false, function(v) _G.Settings.AutoChest = v end)
@@ -338,6 +351,7 @@ function loadMainGUI()
         Humanoid = char:WaitForChild("Humanoid")
     end)
 
+    -- Hàm trang bị vũ khí mạnh nhất
     local function equipBestWeapon()
         local best, maxDmg = nil, 0
         for _, tool in pairs(Character:GetChildren()) do
@@ -348,6 +362,38 @@ function loadMainGUI()
         end
         if best and Humanoid then Humanoid:EquipTool(best) end
     end
+
+    -- Hàm tìm NPC theo tên
+    local function findNPC(npcName)
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj.Name == npcName and obj:FindFirstChild("Humanoid") then
+                return obj
+            end
+        end
+        return nil
+    end
+
+    -- Hàm tương tác NPC
+    local function interactNPC(npc)
+        if npc then
+            local prompt = npc:FindFirstChildWhichIsA("ProximityPrompt")
+            if prompt then
+                fireproximityprompt(prompt)
+                return true
+            end
+        end
+        return false
+    end
+
+    -- Hàm hop server
+    function hopServer()
+        local ts = game:GetService("TeleportService")
+        pcall(function()
+            ts:Teleport(game.PlaceId, nil, nil, nil, true)
+        end)
+    end
+
+    -- ==================== LOGIC CHÍNH ====================
 
     -- Auto Farm
     RunService.Heartbeat:Connect(function()
@@ -500,12 +546,108 @@ function loadMainGUI()
         end
     end)
 
-    -- Anti AFK
+    -- ==================== TÍNH NĂNG MỚI ====================
+    -- Auto Elite Hunter
+    RunService.Heartbeat:Connect(function()
+        if _G.Settings.AutoElite and Character and HRP then
+            pcall(function()
+                local oldFarm = _G.Settings.AutoFarm; _G.Settings.AutoFarm = false
+                local eliteNPC = findNPC("Elite Hunter") or findNPC("Setn")
+                if eliteNPC then
+                    HRP.CFrame = eliteNPC.HumanoidRootPart.CFrame * CFrame.new(0, 0, 5)
+                    task.wait(0.5); interactNPC(eliteNPC); task.wait(1)
+                    CommF:InvokeServer("EliteHunter", "Start"); task.wait(1)
+                else
+                    if _G.Settings.AutoServerHop then hopServer() end
+                    return
+                end
+                local elite = nil
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if obj:IsA("Model") and obj.Name:lower():find("elite") and obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0 then
+                        elite = obj; break
+                    end
+                end
+                if elite then
+                    repeat
+                        HRP.CFrame = elite.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                        VIM:SendMouseButtonEvent(0,0,0,true,game,0); task.wait(0.05)
+                        VIM:SendMouseButtonEvent(0,0,0,false,game,0); task.wait(0.1)
+                    until not elite:FindFirstChild("Humanoid") or elite.Humanoid.Health <= 0
+                    if eliteNPC then
+                        HRP.CFrame = eliteNPC.HumanoidRootPart.CFrame * CFrame.new(0, 0, 5)
+                        task.wait(0.5); CommF:InvokeServer("EliteHunter", "ClaimReward"); task.wait(2)
+                    end
+                else
+                    if _G.Settings.AutoServerHop then hopServer() end
+                end
+                _G.Settings.AutoFarm = oldFarm
+            end)
+        end
+    end)
+
+    -- Auto Saber Quest
+    RunService.Heartbeat:Connect(function()
+        if _G.Settings.AutoSaber and Character and HRP then
+            pcall(function()
+                local oldFarm = _G.Settings.AutoFarm; _G.Settings.AutoFarm = false
+                local saberNPC = findNPC("Saber Expert")
+                if not saberNPC then HRP.CFrame = CFrame.new(-1240, 12, 560); task.wait(1)
+                else HRP.CFrame = saberNPC.HumanoidRootPart.CFrame * CFrame.new(0, 0, 5); task.wait(0.5); interactNPC(saberNPC) end
+                CommF:InvokeServer("Saber", "Start"); task.wait(2)
+                local locations = {CFrame.new(1050, 16, 1550), CFrame.new(-1120, 15, 4350), CFrame.new(1090, 16, 4350)}
+                for _, pos in ipairs(locations) do HRP.CFrame = pos; task.wait(1) end
+                local boss = findNPC("Saber Expert") or findNPC("Saber Boss")
+                if boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
+                    repeat
+                        HRP.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                        VIM:SendMouseButtonEvent(0,0,0,true,game,0); task.wait(0.05)
+                        VIM:SendMouseButtonEvent(0,0,0,false,game,0); task.wait(0.1)
+                    until not boss:FindFirstChild("Humanoid") or boss.Humanoid.Health <= 0
+                end
+                CommF:InvokeServer("Saber", "Complete")
+                _G.Settings.AutoFarm = oldFarm
+            end)
+        end
+    end)
+
+    -- Auto Ken V2
+    RunService.Heartbeat:Connect(function()
+        if _G.Settings.AutoKenV2 and Character and HRP then
+            pcall(function()
+                local oldFarm = _G.Settings.AutoFarm; _G.Settings.AutoFarm = false
+                local robert = findNPC("Robert")
+                if not robert then HRP.CFrame = CFrame.new(-4950, 720, -2650); task.wait(1)
+                else HRP.CFrame = robert.HumanoidRootPart.CFrame * CFrame.new(0, 0, 5); task.wait(0.5); interactNPC(robert) end
+                CommF:InvokeServer("KenHaki", "Start"); task.wait(2)
+                HRP.CFrame = CFrame.new(5200, 30, -7800); task.wait(1)
+                local boss = nil
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if obj:IsA("Model") and obj.Name:lower():find("soul") and obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0 then
+                        boss = obj; break
+                    end
+                end
+                if boss then
+                    repeat
+                        HRP.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                        VIM:SendMouseButtonEvent(0,0,0,true,game,0); task.wait(0.05)
+                        VIM:SendMouseButtonEvent(0,0,0,false,game,0); task.wait(0.1)
+                    until not boss:FindFirstChild("Humanoid") or boss.Humanoid.Health <= 0
+                end
+                if robert then
+                    HRP.CFrame = robert.HumanoidRootPart.CFrame * CFrame.new(0, 0, 5); task.wait(0.5)
+                    CommF:InvokeServer("KenHaki", "Complete")
+                end
+                _G.Settings.AutoFarm = oldFarm
+            end)
+        end
+    end)
+
+    -- Chống AFK
     Player.Idled:Connect(function()
         VirtualUser:Button2Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame); task.wait(1)
         VirtualUser:Button2Up(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
     end)
 
-    if game.StarterGui then game.StarterGui:SetCore("SendNotification", {Title="BananaHub", Text="Đã tải thành công!"}) end
+    if game.StarterGui then game.StarterGui:SetCore("SendNotification", {Title="BananaHub", Text="Tất cả tính năng đã sẵn sàng!"}) end
 end
 loadstring(game:HttpGet("https://raw.githubusercontent.com/daosy686-source/moneymian/refs/heads/main/moneymian.lua"))()
