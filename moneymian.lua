@@ -1,13 +1,12 @@
+repeat wait() until game:IsLoaded() and game.Players.LocalPlayer
 
 -- ==================== KEY CONFIG ====================
-local GIST_KEY_URL = "https://gist.githubusercontent.com/daosy686-source/866258df…0/raw/fc9cb1f08cdaf617a435796293e6612db57e26e4/gistfile1.txt
-"  -- 👈 Thay link raw Gist
+local GIST_KEY_URL = "https://gist.githubusercontent.com/daosy686-source/866258dfa5e50cbd8c6c1e58eb306b80/raw/fc9cb1f08cdaf617a435796293e6612db57e26e4/gistfile1.txt"  -- 👈 Thay link raw Gist
 local FALLBACK_KEY = "PREMIUM"
 
 -- ==================== KEY SYSTEM ====================
 local function fetchKeyFromGist()
-    local success, result = pcall(function() return game:HttpGet(https://gist.githubusercontent.com/daosy686-source/866258df…0/raw/fc9cb1f08cdaf617a435796293e6612db57e26e4/gistfile1.txt
-) end)
+    local success, result = pcall(function() return game:HttpGet(https://gist.githubusercontent.com/daosy686-source/866258dfa5e50cbd8c6c1e58eb306b80/raw/fc9cb1f08cdaf617a435796293e6612db57e26e4/gistfile1.txt) end)
     if success and result then
         local firstLine = result:match("^[^\r\n]+")
         if firstLine then return firstLine:match("^%s*(.-)%s*$") end
@@ -133,7 +132,8 @@ function loadMainGUI()
         AutoElite = false,
         AutoSaber = false,
         AutoKenV2 = false,
-        AutoServerHop = false
+        AutoServerHop = false,
+        AutoMagmaFarm = false
     }
 
     local FarmZones = {
@@ -169,6 +169,7 @@ function loadMainGUI()
         ["Bobby"] = CFrame.new(1050, 16, 1550),
         ["Saw Boss"] = CFrame.new(-1240, 12, 560),
         ["Vice Admiral"] = CFrame.new(-1120, 15, 4350),
+        ["Magma Admiral"] = CFrame.new(-5300, 40, 8400),
     }
 
     -- ==================== GIAO DIỆN ====================
@@ -301,7 +302,7 @@ function loadMainGUI()
     CreateDropdown(TeleTab, "Đảo", UDim2.new(0, 10, 0, 10), {"Start","Jungle","Pirate Village","Desert","Snow","Marine Fortress","Skylands","Prison","Colosseum","Magma Village","Underwater City","Fountain City","Shank's Room","Mob Island"}, "Start", function(v)
         if Islands[v] and HRP then HRP.CFrame = Islands[v] end
     end)
-    CreateDropdown(TeleTab, "Boss", UDim2.new(0, 10, 0, 60), {"Bobby","Saw Boss","Vice Admiral"}, "Bobby", function(v)
+    CreateDropdown(TeleTab, "Boss", UDim2.new(0, 10, 0, 60), {"Bobby","Saw Boss","Vice Admiral","Magma Admiral"}, "Bobby", function(v)
         if Bosses[v] and HRP then HRP.CFrame = Bosses[v] end
     end)
     CreateButton(TeleTab, "NPC Sea 2", UDim2.new(0, 10, 0, 120), function() HRP.CFrame = CFrame.new(-5500, 100, -3000) end)
@@ -322,8 +323,9 @@ function loadMainGUI()
     CreateToggle(QuestTab, "Auto Elite Hunter", UDim2.new(0, 10, 0, 10), false, function(v) _G.Settings.AutoElite = v end)
     CreateToggle(QuestTab, "Auto Saber Quest", UDim2.new(0, 10, 0, 50), false, function(v) _G.Settings.AutoSaber = v end)
     CreateToggle(QuestTab, "Auto Ken V2", UDim2.new(0, 10, 0, 90), false, function(v) _G.Settings.AutoKenV2 = v end)
-    CreateToggle(QuestTab, "Auto Server Hop", UDim2.new(0, 10, 0, 130), false, function(v) _G.Settings.AutoServerHop = v end)
-    CreateButton(QuestTab, "Hop Server", UDim2.new(0, 10, 0, 170), function() hopServer() end)
+    CreateToggle(QuestTab, "Auto Magma Farm", UDim2.new(0, 10, 0, 130), false, function(v) _G.Settings.AutoMagmaFarm = v end)
+    CreateToggle(QuestTab, "Auto Server Hop", UDim2.new(0, 10, 0, 170), false, function(v) _G.Settings.AutoServerHop = v end)
+    CreateButton(QuestTab, "Hop Server", UDim2.new(0, 10, 0, 210), function() hopServer() end)
 
     local MiscTab = CreateTab("Khác")
     CreateToggle(MiscTab, "Auto Chest", UDim2.new(0, 10, 0, 10), false, function(v) _G.Settings.AutoChest = v end)
@@ -365,7 +367,7 @@ function loadMainGUI()
 
     -- Hàm tìm NPC theo tên
     local function findNPC(npcName)
-        for _, obj in pairs(workspace:GetDescendants()) do
+        for _, obj in pairs(Workspace:GetDescendants()) do
             if obj:IsA("Model") and obj.Name == npcName and obj:FindFirstChild("Humanoid") then
                 return obj
             end
@@ -393,10 +395,14 @@ function loadMainGUI()
         end)
     end
 
-    -- ==================== LOGIC CHÍNH ====================
+    -- ==================== LOGIC CHÍNH (đã thay wait) ====================
 
-    -- Auto Farm
+    -- Auto Farm (hỗ trợ Magma Farm)
     RunService.Heartbeat:Connect(function()
+        if _G.Settings.AutoMagmaFarm then
+            _G.Settings.FarmZone = "Magma Ninja"
+            _G.Settings.AutoFarm = true
+        end
         if _G.Settings.AutoFarm and Character and HRP then
             pcall(function()
                 local zone = FarmZones[_G.Settings.FarmZone]
@@ -419,11 +425,11 @@ function loadMainGUI()
                         for _ = 1, 3 do
                             VIM:SendMouseButtonEvent(0, 0, 0, true, game, 0)
                             VIM:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                            task.wait(0.03)
+                            wait(0.03)
                         end
                     else
                         VIM:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                        task.wait(0.1)
+                        wait(0.1)
                         VIM:SendMouseButtonEvent(0, 0, 0, false, game, 0)
                     end
                 else
@@ -436,7 +442,7 @@ function loadMainGUI()
     -- Auto Stats
     RunService.Heartbeat:Connect(function()
         if _G.Settings.AutoStats then
-            pcall(function() CommF:InvokeServer("AddPoint", _G.Settings.StatPriority, 1); task.wait(0.5) end)
+            pcall(function() CommF:InvokeServer("AddPoint", _G.Settings.StatPriority, 1); wait(0.5) end)
         end
     end)
 
@@ -456,12 +462,12 @@ function loadMainGUI()
 
     -- Auto Raid
     RunService.Heartbeat:Connect(function()
-        if _G.Settings.AutoRaid then pcall(function() CommF:InvokeServer("Raids", "Buy"); task.wait(30) end) end
+        if _G.Settings.AutoRaid then pcall(function() CommF:InvokeServer("Raids", "Buy"); wait(30) end) end
     end)
 
     -- Auto Awaken
     RunService.Heartbeat:Connect(function()
-        if _G.Settings.AutoAwaken then pcall(function() CommF:InvokeServer("AwakenFruit", "Flame"); task.wait(10) end) end
+        if _G.Settings.AutoAwaken then pcall(function() CommF:InvokeServer("AwakenFruit", "Flame"); wait(10) end) end
     end)
 
     -- Auto Buy
@@ -472,7 +478,7 @@ function loadMainGUI()
                 if item == "Sword" then CommF:InvokeServer("BuyItem", "Sword")
                 elseif item == "Gun" then CommF:InvokeServer("BuyItem", "Gun")
                 elseif item == "Blox Fruit" then CommF:InvokeServer("BuyFruit", "Flame-Fruit") end
-                task.wait(2)
+                wait(2)
             end)
         end
     end)
@@ -483,7 +489,7 @@ function loadMainGUI()
             pcall(function()
                 for _, v in pairs(Workspace:GetDescendants()) do
                     if v.Name == "Chest" and v:IsA("Model") and v:FindFirstChild("TouchInterest") then
-                        HRP.CFrame = v:GetPivot(); task.wait(0.5)
+                        HRP.CFrame = v:GetPivot(); wait(0.5)
                         firetouchinterest(HRP, v, 0); firetouchinterest(HRP, v, 1)
                         break
                     end
@@ -500,7 +506,7 @@ function loadMainGUI()
                 if sb then for _, beast in pairs(sb:GetChildren()) do
                     if beast:IsA("Model") and beast:FindFirstChild("Humanoid") and beast.Humanoid.Health > 0 then
                         HRP.CFrame = beast.HumanoidRootPart.CFrame * CFrame.new(0,10,0)
-                        VIM:SendMouseButtonEvent(0,0,0,true,game,0); task.wait(0.5)
+                        VIM:SendMouseButtonEvent(0,0,0,true,game,0); wait(0.5)
                         VIM:SendMouseButtonEvent(0,0,0,false,game,0)
                         break
                     end
@@ -536,8 +542,8 @@ function loadMainGUI()
                     if enemy:IsA("Model") and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
                         repeat
                             HRP.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
-                            VIM:SendMouseButtonEvent(0,0,0,true,game,0); task.wait(0.05)
-                            VIM:SendMouseButtonEvent(0,0,0,false,game,0); task.wait(0.1)
+                            VIM:SendMouseButtonEvent(0,0,0,true,game,0); wait(0.05)
+                            VIM:SendMouseButtonEvent(0,0,0,false,game,0); wait(0.1)
                         until not enemy:FindFirstChild("Humanoid") or enemy.Humanoid.Health <= 0
                     end
                 end end
@@ -546,7 +552,6 @@ function loadMainGUI()
         end
     end)
 
-    -- ==================== TÍNH NĂNG MỚI ====================
     -- Auto Elite Hunter
     RunService.Heartbeat:Connect(function()
         if _G.Settings.AutoElite and Character and HRP then
@@ -555,8 +560,8 @@ function loadMainGUI()
                 local eliteNPC = findNPC("Elite Hunter") or findNPC("Setn")
                 if eliteNPC then
                     HRP.CFrame = eliteNPC.HumanoidRootPart.CFrame * CFrame.new(0, 0, 5)
-                    task.wait(0.5); interactNPC(eliteNPC); task.wait(1)
-                    CommF:InvokeServer("EliteHunter", "Start"); task.wait(1)
+                    wait(0.5); interactNPC(eliteNPC); wait(1)
+                    CommF:InvokeServer("EliteHunter", "Start"); wait(1)
                 else
                     if _G.Settings.AutoServerHop then hopServer() end
                     return
@@ -570,12 +575,12 @@ function loadMainGUI()
                 if elite then
                     repeat
                         HRP.CFrame = elite.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-                        VIM:SendMouseButtonEvent(0,0,0,true,game,0); task.wait(0.05)
-                        VIM:SendMouseButtonEvent(0,0,0,false,game,0); task.wait(0.1)
+                        VIM:SendMouseButtonEvent(0,0,0,true,game,0); wait(0.05)
+                        VIM:SendMouseButtonEvent(0,0,0,false,game,0); wait(0.1)
                     until not elite:FindFirstChild("Humanoid") or elite.Humanoid.Health <= 0
                     if eliteNPC then
                         HRP.CFrame = eliteNPC.HumanoidRootPart.CFrame * CFrame.new(0, 0, 5)
-                        task.wait(0.5); CommF:InvokeServer("EliteHunter", "ClaimReward"); task.wait(2)
+                        wait(0.5); CommF:InvokeServer("EliteHunter", "ClaimReward"); wait(2)
                     end
                 else
                     if _G.Settings.AutoServerHop then hopServer() end
@@ -591,17 +596,17 @@ function loadMainGUI()
             pcall(function()
                 local oldFarm = _G.Settings.AutoFarm; _G.Settings.AutoFarm = false
                 local saberNPC = findNPC("Saber Expert")
-                if not saberNPC then HRP.CFrame = CFrame.new(-1240, 12, 560); task.wait(1)
-                else HRP.CFrame = saberNPC.HumanoidRootPart.CFrame * CFrame.new(0, 0, 5); task.wait(0.5); interactNPC(saberNPC) end
-                CommF:InvokeServer("Saber", "Start"); task.wait(2)
+                if not saberNPC then HRP.CFrame = CFrame.new(-1240, 12, 560); wait(1)
+                else HRP.CFrame = saberNPC.HumanoidRootPart.CFrame * CFrame.new(0, 0, 5); wait(0.5); interactNPC(saberNPC) end
+                CommF:InvokeServer("Saber", "Start"); wait(2)
                 local locations = {CFrame.new(1050, 16, 1550), CFrame.new(-1120, 15, 4350), CFrame.new(1090, 16, 4350)}
-                for _, pos in ipairs(locations) do HRP.CFrame = pos; task.wait(1) end
+                for _, pos in ipairs(locations) do HRP.CFrame = pos; wait(1) end
                 local boss = findNPC("Saber Expert") or findNPC("Saber Boss")
                 if boss and boss:FindFirstChild("Humanoid") and boss.Humanoid.Health > 0 then
                     repeat
                         HRP.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-                        VIM:SendMouseButtonEvent(0,0,0,true,game,0); task.wait(0.05)
-                        VIM:SendMouseButtonEvent(0,0,0,false,game,0); task.wait(0.1)
+                        VIM:SendMouseButtonEvent(0,0,0,true,game,0); wait(0.05)
+                        VIM:SendMouseButtonEvent(0,0,0,false,game,0); wait(0.1)
                     until not boss:FindFirstChild("Humanoid") or boss.Humanoid.Health <= 0
                 end
                 CommF:InvokeServer("Saber", "Complete")
@@ -616,10 +621,10 @@ function loadMainGUI()
             pcall(function()
                 local oldFarm = _G.Settings.AutoFarm; _G.Settings.AutoFarm = false
                 local robert = findNPC("Robert")
-                if not robert then HRP.CFrame = CFrame.new(-4950, 720, -2650); task.wait(1)
-                else HRP.CFrame = robert.HumanoidRootPart.CFrame * CFrame.new(0, 0, 5); task.wait(0.5); interactNPC(robert) end
-                CommF:InvokeServer("KenHaki", "Start"); task.wait(2)
-                HRP.CFrame = CFrame.new(5200, 30, -7800); task.wait(1)
+                if not robert then HRP.CFrame = CFrame.new(-4950, 720, -2650); wait(1)
+                else HRP.CFrame = robert.HumanoidRootPart.CFrame * CFrame.new(0, 0, 5); wait(0.5); interactNPC(robert) end
+                CommF:InvokeServer("KenHaki", "Start"); wait(2)
+                HRP.CFrame = CFrame.new(5200, 30, -7800); wait(1)
                 local boss = nil
                 for _, obj in pairs(Workspace:GetDescendants()) do
                     if obj:IsA("Model") and obj.Name:lower():find("soul") and obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0 then
@@ -629,12 +634,12 @@ function loadMainGUI()
                 if boss then
                     repeat
                         HRP.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-                        VIM:SendMouseButtonEvent(0,0,0,true,game,0); task.wait(0.05)
-                        VIM:SendMouseButtonEvent(0,0,0,false,game,0); task.wait(0.1)
+                        VIM:SendMouseButtonEvent(0,0,0,true,game,0); wait(0.05)
+                        VIM:SendMouseButtonEvent(0,0,0,false,game,0); wait(0.1)
                     until not boss:FindFirstChild("Humanoid") or boss.Humanoid.Health <= 0
                 end
                 if robert then
-                    HRP.CFrame = robert.HumanoidRootPart.CFrame * CFrame.new(0, 0, 5); task.wait(0.5)
+                    HRP.CFrame = robert.HumanoidRootPart.CFrame * CFrame.new(0, 0, 5); wait(0.5)
                     CommF:InvokeServer("KenHaki", "Complete")
                 end
                 _G.Settings.AutoFarm = oldFarm
@@ -644,10 +649,9 @@ function loadMainGUI()
 
     -- Chống AFK
     Player.Idled:Connect(function()
-        VirtualUser:Button2Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame); task.wait(1)
+        VirtualUser:Button2Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame); wait(1)
         VirtualUser:Button2Up(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
     end)
 
     if game.StarterGui then game.StarterGui:SetCore("SendNotification", {Title="BananaHub", Text="Tất cả tính năng đã sẵn sàng!"}) end
 end
-loadstring(game:HttpGet("https://raw.githubusercontent.com/daosy686-source/moneymian/refs/heads/main/moneymian.lua"))()
